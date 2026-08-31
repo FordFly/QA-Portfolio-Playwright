@@ -1,0 +1,46 @@
+name: Playwright E2E Tests
+
+# Dispara el workflow automáticamente en cada push a la rama main
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    # Ejecuta el job en la última versión disponible de Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código del repositorio en el runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Instala Node.js en el runner (LTS)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      # 3. Instala las dependencias del proyecto de forma limpia y reproducible
+      #    (npm ci respeta exactamente el package-lock.json, a diferencia de npm install)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Instala los navegadores que necesita Playwright (Chromium, Firefox, WebKit)
+      #    junto con sus dependencias del sistema operativo (--with-deps)
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      # 5. Ejecuta la suite de tests en modo headless (por defecto en CI)
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      # 6. Sube el reporte HTML como artifact de GitHub, incluso si los tests fallan,
+      #    para poder descargarlo y analizar los fallos (trazas, screenshots, etc.)
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
